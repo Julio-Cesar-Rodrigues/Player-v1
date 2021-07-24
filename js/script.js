@@ -6,12 +6,17 @@ const wrapper = document.querySelector('.wrapper'),
   playPauseBtn = wrapper.querySelector('.play-pause'),
   prevBtn = wrapper.querySelector('#prev'),
   nextBtn = wrapper.querySelector('#next'),
-  progressBar = wrapper.querySelector('.progress-bar')
+  progressArea = wrapper.querySelector('.progress-area'),
+  progressBar = wrapper.querySelector('.progress-bar'),
+  musicList = wrapper.querySelector('.music-list'),
+  showMoreBtn = wrapper.querySelector('#more-music'),
+  hideMusicBtn = musicList.querySelector('#close')
 
-let musicIndex = 1
+let musicIndex = Math.floor(Math.random() * allMusic.length + 1)
 
 window.addEventListener('load', () => {
   loadMusic(musicIndex)
+  playingNow()
 })
 
 //carregando os dados da musica
@@ -70,8 +75,8 @@ mainAudio.addEventListener('timeupdate', event => {
   progressBar.style.width = ` ${progressWidth}%`
 
   //adicionando o tempo total do audio no player
-  let musicCurrentTime = wrapper.querySelector('.current'),
-    musicDuration = wrapper.querySelector('.duration')
+  let musicCurrentTime = wrapper.querySelector('.current'), //duraçao que o audio esta
+    musicDuration = wrapper.querySelector('.duration') //duraçao do auido total
 
   mainAudio.addEventListener('loadeddata', () => {
     let audioDuration = mainAudio.duration
@@ -89,3 +94,106 @@ mainAudio.addEventListener('timeupdate', event => {
   }
   musicCurrentTime.innerText = `${currentMin}:${currentSec}`
 })
+
+//movimento da barra de tempo da musica
+progressArea.addEventListener('click', e => {
+  let progressWidthval = progressArea.clientWidth //pega onde a barra esta
+  let clickedOffSetX = e.offsetX //pega o valor da barra
+  let songDuration = mainAudio.duration //pega a duração total do audio
+
+  mainAudio.currentTime = (clickedOffSetX / progressWidthval) * songDuration
+  playMusic()
+})
+
+//mudanco o incone do repeat
+const repeatBtn = wrapper.querySelector('#repeat-plist')
+repeatBtn.addEventListener('click', () => {
+  //primeiro pegamos o texto do icone para conseguir troca-lo
+  let getText = repeatBtn.innerText //pega o texto do icone
+  switch (getText) {
+    case 'repeat': //se o texto do icone for repeat
+      repeatBtn.innerText = 'repeat_one' //trocar para repeat one
+      repeatBtn.setAttribute('title', 'Song looped')
+      break
+
+    case 'repeat_one': //se o texto for repeat_one
+      repeatBtn.innerText = 'shuffle' //trocar para shuffle
+      repeatBtn.setAttribute('title', 'Playlist shuffle')
+      break
+
+    case 'shuffle': //se o texto for shuffle
+      repeatBtn.innerText = 'repeat' //para repeat
+      repeatBtn.setAttribute('title', 'Playlist looped')
+      break
+  }
+})
+
+//trocando o que o repeat vai fazer
+mainAudio.addEventListener('ended', () => {
+  let getText = repeatBtn.innerText //pega o texto do icone
+
+  switch (getText) {
+    case 'repeat': //se o texto do icone for repeat
+      nextMusic() //ir para a proxima musica
+      break
+    case 'repeat_one': //se o texto for repeat_one
+      mainAudio.currentTime = 0 //voltar o tempo da musica ate 0
+      loadMusic(musicIndex)
+      playMusic()
+      break
+
+    case 'shuffle': //se o texto for shuffle
+      let randIndex = Math.floor(Math.random() * allMusic.length + 1)
+      do {
+        randIndex = Math.floor(Math.random() * allMusic.length + 1) //embaralhar as musicas
+      } while (musicIndex == randIndex)
+      musicIndex = randIndex //colocando a musica embaralhada no length
+      loadMusic(musicIndex) //chama a funcao de carregar a musica
+      playMusic() //chama a funcao de tocar a musica
+      break
+  }
+})
+
+showMoreBtn.addEventListener('click', () => {
+  musicList.classList.toggle('show')
+})
+
+hideMusicBtn.addEventListener('click', () => {
+  showMoreBtn.click()
+})
+
+const ulTag = wrapper.querySelector('ul')
+for (let i = 0; i < allMusic.length; i++) {
+  let liTag = `<li li-index= "${i + 1}">
+                <div class="row">
+                  <span> ${allMusic[i].name} </span>
+                  <p> ${allMusic[i].artist} </p>    
+                </div>
+                  <audio class= "${allMusic[i].src}" src= "songs/${
+    allMusic[i].src
+  }.mp3"></audio>
+              </li>`
+  ulTag.insertAdjacentHTML('beforeend', liTag)
+}
+
+const allLiTags = ulTag.querySelectorAll('li')
+
+function playingNow() {
+  for (let j = 0; j < allLiTags.length; j++) {
+    if (allLiTags[j].classList.contains('playing')) {
+      allLiTags[j].classList.remove('playing')
+    }
+    if (allLiTags[j].getAttribute('li-index') == musicIndex) {
+      allLiTags[j].classList.add('playing')
+    }
+    allLiTags[j].setAttribute('onclick', 'clicked(this)')
+  }
+}
+
+function clicked(element) {
+  let getLiIndex = element.getAttribute('li-index')
+  musicIndex = getLiIndex
+  loadMusic(musicIndex)
+  playMusic()
+  playingNow()
+}
